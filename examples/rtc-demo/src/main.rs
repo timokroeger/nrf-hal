@@ -21,10 +21,10 @@ fn main() -> ! {
 
     // Enable LfClk which is required by the RTC.
     let clocks = hal::clocks::Clocks::new(p.CLOCK);
-    let clocks = clocks.start_lfclk();
+    let (clocks, lfosc) = clocks.start_lfclk();
 
     // Run RTC for 1 second
-    let mut rtc = Rtc::new(p.RTC0);
+    let mut rtc = Rtc::new(p.RTC0, lfosc);
     rtc.set_compare(RtcCompareReg::Compare0, 32_768).unwrap();
     rtc.enable_event(RtcInterrupt::Compare0);
 
@@ -41,8 +41,8 @@ fn main() -> ! {
     rprintln!("Counter stopped at {} ticks", rtc.get_counter());
 
     // Stop LfClk when RTC is not used anymore.
-    rtc.release();
-    clocks.stop_lfclk();
+    let (_, lfosc) = rtc.release();
+    clocks.stop_lfclk(lfosc);
 
     loop {
         cortex_m::asm::nop();
